@@ -32,7 +32,7 @@ while ($alive){
 	}
 	if ($response =~ /high/ig){
 		print "Tried $guess, too high\n";
-		$high=$guess;
+		$high = $guess;
 	}
 	if ($response =~ /correct/ig){
 		print "\t!! Correct number was $guess, found in " . ++$count . " guesses.\n"; # Found correct
