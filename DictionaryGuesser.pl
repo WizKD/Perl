@@ -1,5 +1,8 @@
 #!/usr/bin/perl --
 
+# Created for NULLify (2013) by Kevin Dolphin for a Perl socket example to SpenceHouse's
+# server program.
+
 use Modern::Perl;
 use IO::Socket;
 
