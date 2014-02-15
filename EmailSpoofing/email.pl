@@ -1,56 +1,52 @@
-#!/usr/bin/perl
-use diagnostics;
+#!/usr/bin/perl --
 use Modern::Perl;
 use Mail::Sendmail;
+use Getopt::Long;
 
-my ($toCheck, $fromCheck, $subjectCheck, $messageCheck, $tempCount, $mailto, $mailfrom, $subject, $message);
-$tempCount=$toCheck=$fromCheck=$subjectCheck=0;$message="";
-$subject="No Subject";
+my ($mailto, $mailfrom, $subject, $message, $help); # Create to, from, subject, message
+$subject = 'I have a proposition';
 
-foreach (@ARGV){
-        if ($_ eq "-t"){$toCheck=1; $mailto=$ARGV[$tempCount+1];}
-        elsif ($_ eq "-f"){$fromCheck=1; $mailfrom=$ARGV[$tempCount+1];}
-        elsif ($_ eq "-s"){$subjectCheck=1; $subject=$ARGV[$tempCount+1];}
-        elsif ($_ eq "-m") {$messageCheck=1; &populateMessage($ARGV[$tempCount+1]);}
-        elsif ($_ eq "-h"){ &help; }
-        $tempCount++;
+GetOptions ( 'to=s' => \$mailto, 'from=s' => \$mailfrom, 'subj=s' => \$subject, 'msg=s' => \$message, 'h|help|?' => \$help );
+
+if ($help) { help(); }
+if ( $subject eq 'I have a proposition' ){ printf "[-] You did not provide a subject. Default subject is \"$subject\".\n"; }
+if ( !(defined $message) ) { 
+    while ( !(defined $message) ) { 
+        printf "[-] You did not provide a file for a message. Please provide some text now.\n\$ ";
+        chomp ($message = <STDIN>);
+    }
+} else { populatemsg($message); }
+if (!(defined $mailto || (defined $mailfrom))){ help(); } else { sendmsg(); }
+
+# ---------------------------------------
+
+sub sendmsg {
+    my %email = ( To=>$mailto, From=>$mailfrom, Subject=>$subject, Message=>$message, 'Content-type'=>'text/html; charset="utf-8"' );
+    if (sendmail %email) { printf "[+] Sent $mailfrom => $mailto\n"; }
+    else { printf "[-] Configure issue: $Mail::Sendmail::error\n"; printf "[-] Could not send the message\n";  }
+    return 0;
 }
-
-if ($toCheck == 0 || $fromCheck == 0 || $messageCheck== 0) {&usage;}
-if ($subjectCheck == 0){printf ("You did not provide a subject. Default subject is \"No Subject\".\n");}
-
-my %email = (
-        To=>$mailto,
-        From=>$mailfrom,
-        Subject=>$subject,
-        Message=>$message,
-        'Content-type'=>'text/html; charset="utf-8"');
-
-if (sendmail %email) { printf ("Sent the email from $mailfrom\n");}
-else { printf ("Error $Mail::Sendmail::error\n");}
-
-# --------------- Subs -------------------------- #
-
-sub usage{
-        printf ("\n$0 -t to\@email.com -f from\@email.com -s \"Subject for email\" -m File containing message\n");
-        printf ("\nAdditionally you can use the -h switch (\"$0 -h\") for more info.\n\n");
-        exit(1);
+sub usage {
+    printf "\n[!] $0 -t to\@email.com -f from\@email.com -s \"Subject for email\" -m File containing message\n\n";
+    exit 0;
 }
-sub populateMessage{
-        my $file = shift;
-        open (IN, "<", $file) or die "Could not open file. Application will quit. $!\n";
-        while(<IN>){$message.=$_;}
-        close IN;
+sub populatemsg {
+    my $file = shift;
+    $message = "";
+    printf "[+] Opening:  $file...\n";
+    open my $IN, '<', $file or die "[-] Could not open file. Application will quit. $!\n";
+    while(<$IN>){ $message.=$_; }
+    printf "[+] Message is done populating\n";
+    close $IN or warn "[-] File did not close properly. $!\n";;
+    return 0;
 }
-sub help{
-        say"";
-        printf ("\t-t\tThe to address of your email.--REQUIRED\n");
-        printf ("\t-f\tThe from address of your email.--REQUIRED\n");
-        printf ("\t-m\tThe message of your email.--REQUIRED\n");
-        printf ("\t-s\tThe subject of your email.--optional\n");
-        printf ("\t-h\tThis help message.\n");
-        printf ("----------\n\n\n");
-        printf ("For example:\n-t toemail\@nsd.com -f fromemail\@nsd.com -m filemessage.txt -s \"Subject here\"\n\n");
-        say"";
-        exit(0);
+sub help {
+    printf "\n";
+    printf "-"x20;
+    printf "\n%-8s-The \'to\' address of your email. (Required)\n", '-to';
+    printf "%-8s-The \'from\' address of your email. (Required)\n", '-from';
+    printf "%-8s-The HTML encoded message of your email. (Required)\n", '-msg';
+    printf "%-8s-The \'subject\' of your email. (Optional)\n", '-subj';
+    printf "-"x20;
+    usage();
 }
